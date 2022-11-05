@@ -35,6 +35,8 @@ pub struct Interpreter {
     pub return_range: Range<usize>,
     /// Return is main control flag, it tell us if we should continue interpreter or break from it
     pub instruction_result: Return,
+    /// Is interpreter call static.
+    pub is_static: bool,
     /// Memory limit. See [`crate::CfgEnv`].
     #[cfg(feature = "memory_limit")]
     pub memory_limit: u64,
@@ -45,7 +47,7 @@ impl Interpreter {
         unsafe { *self.instruction_pointer }
     }
     #[cfg(not(feature = "memory_limit"))]
-    pub fn new<SPEC: Spec>(contract: Contract, gas_limit: u64) -> Self {
+    pub fn new<SPEC: Spec>(contract: Contract, gas_limit: u64,is_static:bool) -> Self {
         Self {
             instruction_pointer: contract.bytecode.as_ptr(),
             return_range: Range::default(),
@@ -54,6 +56,7 @@ impl Interpreter {
             return_data_buffer: Bytes::new(),
             contract,
             instruction_result: Return::Continue,
+            is_static,
             gas: Gas::new(gas_limit),
         }
     }
@@ -119,7 +122,7 @@ impl Interpreter {
         if inspect {
             while self.instruction_result == Return::Continue {
                 // step
-                let ret = host.step(self, SPEC::IS_STATIC_CALL);
+                let ret = host.step(self, self.is_static);
                 if ret != Return::Continue {
                     return ret;
                 }
@@ -130,7 +133,7 @@ impl Interpreter {
                 self.instruction_pointer = unsafe { self.instruction_pointer.offset(1) };
                 eval::<H, SPEC>(opcode, self, host);
 
-                let ret = host.step_end(self, SPEC::IS_STATIC_CALL, self.instruction_result);
+                let ret = host.step_end(self, self.is_static, self.instruction_result);
                 if ret != Return::Continue {
                     return ret;
                 }

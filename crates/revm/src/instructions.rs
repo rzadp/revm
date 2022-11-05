@@ -77,6 +77,13 @@ pub enum Return {
 pub fn return_stop(interpreter: &mut Interpreter, _host: &mut dyn Host) {
     interpreter.instruction_result = Return::Stop;
 }
+pub fn return_invalid(interpreter: &mut Interpreter, _host: &mut dyn Host) {
+    interpreter.instruction_result = Return::InvalidOpcode;
+}
+
+pub fn return_not_found(interpreter: &mut Interpreter, _host: &mut dyn Host) {
+    interpreter.instruction_result = Return::OpcodeNotFound;
+}
 
 #[inline(always)]
 pub fn eval<H: Host, S: Spec>(opcode: u8, interp: &mut Interpreter, host: &mut H) {
@@ -214,7 +221,7 @@ pub fn eval<H: Host, S: Spec>(opcode: u8, interp: &mut Interpreter, host: &mut H
 
         opcode::RETURN => control::ret(interp, host),
         opcode::REVERT => control::revert::<S>(interp, host),
-        opcode::INVALID => interp.instruction_result = Return::InvalidOpcode,
+        opcode::INVALID => return_invalid(interp, host),
         opcode::BASEFEE => host_env::basefee::<S>(interp, host),
         opcode::ORIGIN => host_env::origin(interp, host),
         opcode::CALLER => system::caller(interp, host),
@@ -247,6 +254,6 @@ pub fn eval<H: Host, S: Spec>(opcode: u8, interp: &mut Interpreter, host: &mut H
         opcode::DELEGATECALL => host::call::<S>(interp, CallScheme::DelegateCall, host), //check
         opcode::STATICCALL => host::call::<S>(interp, CallScheme::StaticCall, host), //check
         opcode::CHAINID => host_env::chainid::<S>(interp, host),
-        _ => interp.instruction_result = Return::OpcodeNotFound,
+        _ => return_not_found(interp, host),
     }
 }

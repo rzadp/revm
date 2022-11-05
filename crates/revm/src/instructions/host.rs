@@ -127,7 +127,6 @@ pub fn blockhash(interpreter: &mut Interpreter, host: &mut dyn Host) {
                 return;
             }
             *number = ret.unwrap().into();
-            interpreter.instruction_result = Return::Continue;
             return;
         }
     }
@@ -148,7 +147,7 @@ pub fn sload<SPEC: Spec>(interpreter: &mut Interpreter, host: &mut dyn Host) {
 }
 
 pub fn sstore<SPEC: Spec>(interpreter: &mut Interpreter, host: &mut dyn Host) {
-    check!(interpreter, !SPEC::IS_STATIC_CALL);
+    check!(interpreter, !interpreter.is_static);
 
     pop!(interpreter, index, value);
     let ret = host.sstore(interpreter.contract.address, index, value);
@@ -168,7 +167,7 @@ pub fn sstore<SPEC: Spec>(interpreter: &mut Interpreter, host: &mut dyn Host) {
 }
 
 pub fn log<SPEC: Spec>(interpreter: &mut Interpreter, n: u8, host: &mut dyn Host) {
-    check!(interpreter, !SPEC::IS_STATIC_CALL);
+    check!(interpreter, !interpreter.is_static);
 
     pop!(interpreter, offset, len);
     let len = as_usize_or_fail!(interpreter, len, Return::OutOfGas);
@@ -196,7 +195,7 @@ pub fn log<SPEC: Spec>(interpreter: &mut Interpreter, n: u8, host: &mut dyn Host
 }
 
 pub fn selfdestruct<SPEC: Spec>(interpreter: &mut Interpreter, host: &mut dyn Host) {
-    check!(interpreter, !SPEC::IS_STATIC_CALL);
+    check!(interpreter, !interpreter.is_static);
     pop_address!(interpreter, target);
 
     let res = host.selfdestruct(interpreter.contract.address, target);
@@ -216,7 +215,7 @@ pub fn selfdestruct<SPEC: Spec>(interpreter: &mut Interpreter, host: &mut dyn Ho
 }
 
 pub fn create<SPEC: Spec>(interpreter: &mut Interpreter, is_create2: bool, host: &mut dyn Host) {
-    check!(interpreter, !SPEC::IS_STATIC_CALL);
+    check!(interpreter, !interpreter.is_static);
     if is_create2 {
         // EIP-1014: Skinny CREATE2
         check!(interpreter, SPEC::enabled(PETERSBURG));
@@ -311,7 +310,7 @@ pub fn call<SPEC: Spec>(interpreter: &mut Interpreter, scheme: CallScheme, host:
         }
         CallScheme::Call => {
             pop!(interpreter, value);
-            if SPEC::IS_STATIC_CALL && value != U256::ZERO {
+            if interpreter.is_static && value != U256::ZERO {
                 interpreter.instruction_result = Return::CallNotAllowedInsideStatic;
                 return;
             }
@@ -420,7 +419,7 @@ pub fn call<SPEC: Spec>(interpreter: &mut Interpreter, scheme: CallScheme, host:
     if matches!(scheme, CallScheme::Call | CallScheme::CallCode) && transfer.value != U256::ZERO {
         gas_limit = gas_limit.saturating_add(gas::CALL_STIPEND);
     }
-    let is_static = matches!(scheme, CallScheme::StaticCall);
+    let is_static = matches!(scheme, CallScheme::StaticCall) || interpreter.is_static;
 
     let mut call_input = CallInputs {
         contract: to,

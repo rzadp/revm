@@ -469,7 +469,7 @@ impl<'a, GSPEC: Spec, DB: Database, const INSPECT: bool> EVMImpl<'a, GSPEC, DB, 
         );
 
         #[cfg(not(feature = "memory_limit"))]
-        let mut interp = Interpreter::new::<GSPEC>(contract, gas.limit());
+        let mut interp = Interpreter::new::<GSPEC>(contract, gas.limit(),false);
 
         if INSPECT {
             self.inspector
@@ -665,7 +665,7 @@ impl<'a, GSPEC: Spec, DB: Database, const INSPECT: bool> EVMImpl<'a, GSPEC, DB, 
             );
 
             #[cfg(not(feature = "memory_limit"))]
-            let mut interp = Interpreter::new::<GSPEC>(contract, gas.limit());
+            let mut interp = Interpreter::new::<GSPEC>(contract, gas.limit(),inputs.is_static);
 
             if INSPECT {
                 // create is always no static call.

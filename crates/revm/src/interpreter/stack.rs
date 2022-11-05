@@ -247,10 +247,10 @@ impl Stack {
 
     /// push slice onto memory it is expected to be max 32 bytes and be contains inside B256
     #[inline(always)]
-    pub fn push_slice<const N: usize>(&mut self, slice: &[u8]) -> bool {
+    pub fn push_slice<const N: usize>(&mut self, slice: &[u8]) -> Option<Return> {
         let new_len = self.data.len() + 1;
         if new_len > STACK_LIMIT {
-            return false;
+            return Some(Return::StackOverflow);
         }
 
         let slot;
@@ -295,7 +295,7 @@ impl Stack {
                 }
             }
         }
-        true
+        None
     }
 
     #[inline]
