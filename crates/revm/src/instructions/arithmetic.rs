@@ -1,7 +1,58 @@
-use crate::{gas, Interpreter, Return, Spec};
+use crate::{gas, Interpreter, Return, Spec,Host};
 
 use super::i256::{i256_div, i256_mod};
 use ruint::aliases::U256;
+
+
+pub fn wrapped_add(interpreter: &mut Interpreter,_host:&mut dyn Host) {
+    pop_top!(interpreter, op1, op2);
+    *op2 = op1.wrapping_add(*op2);
+}
+/*
+pub fn overflowing_mul(interpreter: &mut Interpreter,_host:&mut dyn Host) -> Return {
+    pop_top!(interpreter, op1, op2);
+    let (ret, ..) = op1.overflowing_mul(*op2);
+    *op2 = ret;
+    Return::Continue
+}
+
+pub fn overflowing_sub(interpreter: &mut Interpreter,_host:&mut dyn Host) -> Return {
+    pop_top!(interpreter, op1, op2);
+    let (ret, ..) = op1.overflowing_sub(*op2);
+    *op2 = ret;
+    Return::Continue
+}
+
+pub fn lt(interpreter: &mut Interpreter,_host:&mut dyn Host) -> Return {
+    pop_top!(interpreter, op1, op2);
+    *op2 = if op1.lt(op2) {
+        u256_one()
+    } else {
+        u256_zero()
+    };
+    Return::Continue
+}
+
+pub fn gt(interpreter: &mut Interpreter,_host:&mut dyn Host) -> Return {
+    pop_top!(interpreter, op1, op2);
+    *op2 = if op1.gt(op2) {
+        u256_one()
+    } else {
+        u256_zero()
+    };
+    Return::Continue
+}
+
+pub fn eq(interpreter: &mut Interpreter,_host:&mut dyn Host) -> Return {
+    pop_top!(interpreter, op1, op2);
+    *op2 = if op1.eq(op2) {
+        u256_one()
+    } else {
+        u256_zero()
+    };
+    Return::Continue
+}
+ */
 
 pub fn div(op1: U256, op2: U256) -> U256 {
     op1.checked_div(op2).unwrap_or_default()
@@ -35,13 +86,11 @@ pub fn exp(op1: U256, op2: U256) -> U256 {
     op1.pow(op2)
 }
 
-pub fn eval_exp<SPEC: Spec>(interp: &mut Interpreter) -> Return {
+pub fn eval_exp<SPEC: Spec>(interp: &mut Interpreter,_host: &mut dyn Host) {
     pop!(interp, op1, op2);
     gas_or_fail!(interp, gas::exp_cost::<SPEC>(op2));
     let ret = exp(op1, op2);
     push!(interp, ret);
-
-    Return::Continue
 }
 
 /// In the yellow paper `SIGNEXTEND` is defined to take two inputs, we will call them

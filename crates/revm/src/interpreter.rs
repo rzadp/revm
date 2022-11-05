@@ -33,6 +33,8 @@ pub struct Interpreter {
     pub return_data_buffer: Bytes,
     /// Return value.
     pub return_range: Range<usize>,
+    /// Return is main control flag, it tell us if we should continue interpreter or break from it
+    pub instruction_result: Return,
     /// Memory limit. See [`crate::CfgEnv`].
     #[cfg(feature = "memory_limit")]
     pub memory_limit: u64,
@@ -51,6 +53,7 @@ impl Interpreter {
             stack: Stack::new(),
             return_data_buffer: Bytes::new(),
             contract,
+            instruction_result: Return::Continue,
             gas: Gas::new(gas_limit),
         }
     }
@@ -86,14 +89,15 @@ impl Interpreter {
         &self.stack
     }
 
-    pub fn add_next_gas_block(&mut self, pc: usize) -> Return {
+    #[inline(always)]
+    pub fn add_next_gas_block(&mut self, pc: usize) -> Option<Return> {
         if USE_GAS {
             let gas_block = self.contract.gas_block(pc);
             if !self.gas.record_cost(gas_block) {
-                return Return::OutOfGas;
+                return Some(Return::OutOfGas);
             }
         }
-        Return::Continue
+        None
     }
 
     /// Return a reference of the program counter.
@@ -106,36 +110,43 @@ impl Interpreter {
     }
 
     /// loop steps until we are finished with execution
-    pub fn run<H: Host, SPEC: Spec>(&mut self, host: &mut H) -> Return {
+    pub fn run<H: Host, SPEC: Spec>(&mut self, host: &mut H, inspect: bool) -> Return {
         //let timer = std::time::Instant::now();
-        let mut ret = Return::Continue;
         // add first gas_block
         if USE_GAS && !self.gas.record_cost(self.contract.first_gas_block()) {
             return Return::OutOfGas;
         }
-        while ret == Return::Continue {
-            // step
-            if H::INSPECT {
+        if inspect {
+            while self.instruction_result == Return::Continue {
+                // step
                 let ret = host.step(self, SPEC::IS_STATIC_CALL);
                 if ret != Return::Continue {
                     return ret;
                 }
-            }
-            let opcode = unsafe { *self.instruction_pointer };
-            // Safety: In analysis we are doing padding of bytecode so that we are sure that last.
-            // byte instruction is STOP so we are safe to just increment program_counter bcs on last instruction
-            // it will do noop and just stop execution of this contract
-            self.instruction_pointer = unsafe { self.instruction_pointer.offset(1) };
-            ret = eval::<H, SPEC>(opcode, self, host);
+                let opcode = unsafe { *self.instruction_pointer };
+                // Safety: In analysis we are doing padding of bytecode so that we are sure that last.
+                // byte instruction is STOP so we are safe to just increment program_counter bcs on last instruction
+                // it will do noop and just stop execution of this contract
+                self.instruction_pointer = unsafe { self.instruction_pointer.offset(1) };
+                eval::<H, SPEC>(opcode, self, host);
 
-            if H::INSPECT {
-                let ret = host.step_end(self, SPEC::IS_STATIC_CALL, ret);
+                let ret = host.step_end(self, SPEC::IS_STATIC_CALL, self.instruction_result);
                 if ret != Return::Continue {
                     return ret;
                 }
             }
+        } else {
+            while self.instruction_result == Return::Continue {
+                // step.
+                let opcode = unsafe { *self.instruction_pointer };
+                // Safety: In analysis we are doing padding of bytecode so that we are sure that last.
+                // byte instruction is STOP so we are safe to just increment program_counter bcs on last instruction
+                // it will do noop and just stop execution of this contract
+                self.instruction_pointer = unsafe { self.instruction_pointer.offset(1) };
+                eval::<H, SPEC>(opcode, self, host);
+            }
         }
-        ret
+        self.instruction_result
     }
 
     /// Copy and get the return value of the interp, if any.
