@@ -166,12 +166,12 @@ pub fn sstore<SPEC: Spec>(interpreter: &mut Interpreter, host: &mut dyn Host) {
     }
 }
 
-pub fn log<SPEC: Spec>(interpreter: &mut Interpreter, n: u8, host: &mut dyn Host) {
+pub fn log<const N: u8, SPEC: Spec>(interpreter: &mut Interpreter, host: &mut dyn Host) {
     check!(interpreter, !interpreter.is_static);
 
     pop!(interpreter, offset, len);
     let len = as_usize_or_fail!(interpreter, len, Return::OutOfGas);
-    gas_or_fail!(interpreter, gas::log_cost(n, len as u64));
+    gas_or_fail!(interpreter, gas::log_cost(N, len as u64));
     let data = if len == 0 {
         Bytes::new()
     } else {
@@ -179,7 +179,7 @@ pub fn log<SPEC: Spec>(interpreter: &mut Interpreter, n: u8, host: &mut dyn Host
         memory_resize!(interpreter, offset, len);
         Bytes::copy_from_slice(interpreter.memory.get_slice(offset, len))
     };
-    let n = n as usize;
+    let n = N as usize;
     if interpreter.stack.len() < n {
         interpreter.instruction_result = Return::StackUnderflow;
         return;
@@ -214,9 +214,12 @@ pub fn selfdestruct<SPEC: Spec>(interpreter: &mut Interpreter, host: &mut dyn Ho
     interpreter.instruction_result = Return::SelfDestruct;
 }
 
-pub fn create<SPEC: Spec>(interpreter: &mut Interpreter, is_create2: bool, host: &mut dyn Host) {
+pub fn create<const IS_CREATE2: bool, SPEC: Spec>(
+    interpreter: &mut Interpreter,
+    host: &mut dyn Host,
+) {
     check!(interpreter, !interpreter.is_static);
-    if is_create2 {
+    if IS_CREATE2 {
         // EIP-1014: Skinny CREATE2
         check!(interpreter, SPEC::enabled(PETERSBURG));
     }
@@ -234,7 +237,7 @@ pub fn create<SPEC: Spec>(interpreter: &mut Interpreter, is_create2: bool, host:
         Bytes::copy_from_slice(interpreter.memory.get_slice(code_offset, len))
     };
 
-    let scheme = if is_create2 {
+    let scheme = if IS_CREATE2 {
         pop!(interpreter, salt);
         gas_or_fail!(interpreter, gas::create2_cost(len));
         CreateScheme::Create2 { salt }
@@ -291,7 +294,27 @@ pub fn create<SPEC: Spec>(interpreter: &mut Interpreter, is_create2: bool, host:
     }
 }
 
-pub fn call<SPEC: Spec>(interpreter: &mut Interpreter, scheme: CallScheme, host: &mut dyn Host) {
+pub fn call<SPEC: Spec>(interpreter: &mut Interpreter, host: &mut dyn Host) {
+    call_inner::<SPEC>(interpreter, CallScheme::Call, host);
+}
+
+pub fn call_code<SPEC: Spec>(interpreter: &mut Interpreter, host: &mut dyn Host) {
+    call_inner::<SPEC>(interpreter, CallScheme::CallCode, host);
+}
+
+pub fn delegate_call<SPEC: Spec>(interpreter: &mut Interpreter, host: &mut dyn Host) {
+    call_inner::<SPEC>(interpreter, CallScheme::DelegateCall, host);
+}
+
+pub fn static_call<SPEC: Spec>(interpreter: &mut Interpreter, host: &mut dyn Host) {
+    call_inner::<SPEC>(interpreter, CallScheme::StaticCall, host);
+}
+
+pub fn call_inner<SPEC: Spec>(
+    interpreter: &mut Interpreter,
+    scheme: CallScheme,
+    host: &mut dyn Host,
+) {
     match scheme {
         CallScheme::DelegateCall => check!(interpreter, SPEC::enabled(HOMESTEAD)), // EIP-7: DELEGATECALL
         CallScheme::StaticCall => check!(interpreter, SPEC::enabled(BYZANTIUM)), // EIP-214: New opcode STATICCALL

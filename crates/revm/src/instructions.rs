@@ -13,7 +13,7 @@ mod system;
 
 pub use opcode::{OpCode, OPCODE_JUMPMAP};
 
-use crate::{interpreter::Interpreter, CallScheme, Host, Spec};
+use crate::{interpreter::Interpreter, Host, Spec};
 
 #[macro_export]
 macro_rules! return_ok {
@@ -218,18 +218,18 @@ pub fn eval<H: Host, S: Spec>(opcode: u8, interp: &mut Interpreter, host: &mut H
         opcode::SLOAD => host::sload::<S>(interp, host),
         opcode::SSTORE => host::sstore::<S>(interp, host),
         opcode::GAS => system::gas(interp, host),
-        opcode::LOG0 => host::log::<S>(interp, 0, host),
-        opcode::LOG1 => host::log::<S>(interp, 1, host),
-        opcode::LOG2 => host::log::<S>(interp, 2, host),
-        opcode::LOG3 => host::log::<S>(interp, 3, host),
-        opcode::LOG4 => host::log::<S>(interp, 4, host),
+        opcode::LOG0 => host::log::<0, S>(interp, host),
+        opcode::LOG1 => host::log::<1, S>(interp, host),
+        opcode::LOG2 => host::log::<2, S>(interp, host),
+        opcode::LOG3 => host::log::<3, S>(interp, host),
+        opcode::LOG4 => host::log::<4, S>(interp, host),
         opcode::SELFDESTRUCT => host::selfdestruct::<S>(interp, host),
-        opcode::CREATE => host::create::<S>(interp, false, host), //check
-        opcode::CREATE2 => host::create::<S>(interp, true, host), //check
-        opcode::CALL => host::call::<S>(interp, CallScheme::Call, host), //check
-        opcode::CALLCODE => host::call::<S>(interp, CallScheme::CallCode, host), //check
-        opcode::DELEGATECALL => host::call::<S>(interp, CallScheme::DelegateCall, host), //check
-        opcode::STATICCALL => host::call::<S>(interp, CallScheme::StaticCall, host), //check
+        opcode::CREATE => host::create::<false, S>(interp, host), //check
+        opcode::CREATE2 => host::create::<true, S>(interp, host), //check
+        opcode::CALL => host::call::<S>(interp, host),            //check
+        opcode::CALLCODE => host::call_code::<S>(interp, host),   //check
+        opcode::DELEGATECALL => host::delegate_call::<S>(interp, host), //check
+        opcode::STATICCALL => host::static_call::<S>(interp, host), //check
         opcode::CHAINID => host_env::chainid::<S>(interp, host),
         _ => return_not_found(interp, host),
     }
