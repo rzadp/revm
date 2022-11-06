@@ -1476,6 +1476,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "revm_interpreter"
+version = "1.0.0"
+dependencies = [
+ "arrayref",
+ "auto_impl",
+ "bytes",
+ "futures",
+ "hashbrown",
+ "hex",
+ "num_enum",
+ "parking_lot",
+ "revm_precompiles",
+ "rlp",
+ "ruint",
+ "serde",
+ "tokio",
+ "web3",
+]
+
+[[package]]
 name = "revm_precompiles"
 version = "1.1.1"
 dependencies = [

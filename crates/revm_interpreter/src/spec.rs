@@ -29,17 +29,6 @@ pub enum SpecId {
 }
 
 impl SpecId {
-    pub const fn to_precompile_id(self) -> PrecompileId {
-        match self {
-            FRONTIER | FRONTIER_THAWING | HOMESTEAD | DAO_FORK | TANGERINE | SPURIOUS_DRAGON => {
-                PrecompileId::HOMESTEAD
-            }
-            BYZANTIUM | CONSTANTINOPLE | PETERSBURG => PrecompileId::BYZANTIUM,
-            ISTANBUL | MUIR_GLACIER => PrecompileId::ISTANBUL,
-            BERLIN | LONDON | ARROW_GLACIER | GRAY_GLACIER | MERGE | LATEST => PrecompileId::BERLIN,
-        }
-    }
-
     pub fn try_from_u8(spec_id: u8) -> Option<Self> {
         Self::try_from(spec_id).ok()
     }

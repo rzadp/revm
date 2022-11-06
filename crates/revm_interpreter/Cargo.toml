@@ -1,0 +1,36 @@
+[package]
+authors = ["Dragan Rakita <dragan0rakita@gmail.com>"]
+description = "REVM interpreter"
+edition = "2021"
+keywords = ["no_std", "ethereum", "evm", "precompiles"]
+license = "MIT"
+name = "revm_interpreter"
+repository = "https://github.com/bluealloy/revm"
+version = "1.0.0"
+
+
+[dependencies]
+arrayref  = "0.3"
+auto_impl = { version = "1.0", default-features = false }
+bytes = { version = "1.1", default-features = false }
+futures = { version = "0.3.24", optional = true }
+hashbrown = { version = "0.12" }
+hex = { version = "0.4", optional = true }
+num_enum = { version = "0.5", default-features = false } # used for SpecId from u8 cast
+parking_lot = { version = "0.12", optional = true }
+revm_precompiles = { path = "../revm_precompiles", version = "1.1.1", default-features = false }
+rlp = { version = "0.5", default-features = false } # used for create2 address calculation
+ruint = { version = "1.7.0", features = ["primitive-types", "rlp"] }
+serde = { version = "1.0", features = ["derive","rc"], optional = true }
+tokio = { version = "1.21", features = ["rt-multi-thread", "macros"], optional = true }
+web3 = { git = "https://github.com/tomusdrw/rust-web3", version = "0.19", optional = true }
+
+[dev-dependencies]
+hex = "0.4"
+
+[features]
+dev = ["memory_limit", "optional_block_gas_limit"]
+memory_limit = []
+no_gas_measuring = []
+optional_block_gas_limit = []
+
