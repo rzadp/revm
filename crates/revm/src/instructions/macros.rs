@@ -204,57 +204,6 @@ macro_rules! push {
 	)
 }
 
-macro_rules! op1_u256_fn {
-    ( $interp:expr, $op:path ) => {{
-        // gas!($interp, $gas);
-        pop_top!($interp, op1);
-        *op1 = $op(*op1);
-    }};
-}
-
-macro_rules! op2_u256_bool_ref {
-    ( $interp:expr, $op:ident) => {{
-        // gas!($interp, $gas);
-        pop_top!($interp, op1, op2);
-        let ret = op1.$op(&op2);
-        *op2 = if ret { U256::from(1) } else { U256::ZERO };
-    }};
-}
-
-macro_rules! op2_u256 {
-    ( $interp:expr, $op:ident) => {{
-        // gas!($interp, $gas);
-        pop_top!($interp, op1, op2);
-        *op2 = op1.$op(*op2);
-    }};
-}
-
-macro_rules! op2_u256_fn {
-    ( $interp:expr, $op:path ) => {{
-        // gas!($interp, $gas);
-
-        pop_top!($interp, op1, op2);
-        *op2 = $op(op1, *op2);
-    }};
-    ( $interp:expr, $op:path, $enabled:expr) => {{
-        check!($interp, $enabled);
-        op2_u256_fn!($interp, $op)
-    }};
-}
-
-macro_rules! op3_u256_fn {
-    ( $interp:expr, $op:path) => {{
-        // gas!($interp, $gas);
-
-        pop_top!($interp, op1, op2, op3);
-        *op3 = $op(op1, op2, *op3);
-    }};
-    ( $interp:expr, $op:path, $spec:ident :: $enabled:ident) => {{
-        check!($spec::$enabled);
-        op3_u256_fn!($interp, $op)
-    }};
-}
-
 macro_rules! as_usize_saturated {
     ( $v:expr ) => {
         $v.saturating_to::<usize>()

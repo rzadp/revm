@@ -13,9 +13,7 @@ mod system;
 
 pub use opcode::{OpCode, OPCODE_JUMPMAP};
 
-use crate::{interpreter::Interpreter, CallScheme, Host, Spec, SpecId::*};
-use core::ops::{BitAnd, BitOr, BitXor};
-use ruint::aliases::U256;
+use crate::{interpreter::Interpreter, CallScheme, Host, Spec};
 
 #[macro_export]
 macro_rules! return_ok {
@@ -88,54 +86,33 @@ pub fn return_not_found(interpreter: &mut Interpreter, _host: &mut dyn Host) {
 #[inline(always)]
 pub fn eval<H: Host, S: Spec>(opcode: u8, interp: &mut Interpreter, host: &mut H) {
     match opcode {
-        /*12_u8..=15_u8 => Return::OpcodeNotFound,
-        30_u8..=31_u8 => Return::OpcodeNotFound,
-        33_u8..=47_u8 => Return::OpcodeNotFound,
-        73_u8..=79_u8 => Return::OpcodeNotFound,
-        92_u8..=95_u8 => Return::OpcodeNotFound,
-        165_u8..=239_u8 => Return::OpcodeNotFound,
-        246_u8..=249_u8 => Return::OpcodeNotFound,
-        251_u8..=252_u8 => Return::OpcodeNotFound,*/
         opcode::STOP => return_stop(interp, host),
-        opcode::ADD => op2_u256!(interp, wrapping_add),
-        opcode::MUL => op2_u256!(interp, wrapping_mul),
-        opcode::SUB => op2_u256!(interp, wrapping_sub),
-        opcode::DIV => op2_u256_fn!(interp, arithmetic::div),
-        opcode::SDIV => op2_u256_fn!(interp, arithmetic::sdiv),
-        opcode::MOD => op2_u256_fn!(interp, arithmetic::rem),
-        opcode::SMOD => op2_u256_fn!(interp, arithmetic::smod),
-        opcode::ADDMOD => op3_u256_fn!(interp, arithmetic::addmod),
-        opcode::MULMOD => op3_u256_fn!(interp, arithmetic::mulmod),
+        opcode::ADD => arithmetic::wrapped_add(interp, host),
+        opcode::MUL => arithmetic::wrapping_mul(interp, host),
+        opcode::SUB => arithmetic::wrapping_sub(interp, host),
+        opcode::DIV => arithmetic::div(interp, host),
+        opcode::SDIV => arithmetic::sdiv(interp, host),
+        opcode::MOD => arithmetic::rem(interp, host),
+        opcode::SMOD => arithmetic::smod(interp, host),
+        opcode::ADDMOD => arithmetic::addmod(interp, host),
+        opcode::MULMOD => arithmetic::mulmod(interp, host),
         opcode::EXP => arithmetic::eval_exp::<S>(interp, host),
-        opcode::SIGNEXTEND => op2_u256_fn!(interp, arithmetic::signextend),
-        opcode::LT => op2_u256_bool_ref!(interp, lt),
-        opcode::GT => op2_u256_bool_ref!(interp, gt),
-        opcode::SLT => op2_u256_fn!(interp, bitwise::slt),
-        opcode::SGT => op2_u256_fn!(interp, bitwise::sgt),
-        opcode::EQ => op2_u256_bool_ref!(interp, eq),
-        opcode::ISZERO => op1_u256_fn!(interp, bitwise::iszero),
-        opcode::AND => op2_u256!(interp, bitand),
-        opcode::OR => op2_u256!(interp, bitor),
-        opcode::XOR => op2_u256!(interp, bitxor),
-        opcode::NOT => op1_u256_fn!(interp, bitwise::not),
-        opcode::BYTE => op2_u256_fn!(interp, bitwise::byte),
-        opcode::SHL => op2_u256_fn!(
-            interp,
-            bitwise::shl,
-            S::enabled(CONSTANTINOPLE) // EIP-145: Bitwise shifting instructions in EVM
-        ),
-        opcode::SHR => op2_u256_fn!(
-            interp,
-            bitwise::shr,
-            S::enabled(CONSTANTINOPLE) // EIP-145: Bitwise shifting instructions in EVM
-        ),
-        opcode::SAR => op2_u256_fn!(
-            interp,
-            bitwise::sar,
-            S::enabled(CONSTANTINOPLE) // EIP-145: Bitwise shifting instructions in EVM
-        ),
+        opcode::SIGNEXTEND => arithmetic::signextend(interp, host),
+        opcode::LT => bitwise::lt(interp, host),
+        opcode::GT => bitwise::gt(interp, host),
+        opcode::SLT => bitwise::slt(interp, host),
+        opcode::SGT => bitwise::sgt(interp, host),
+        opcode::EQ => bitwise::eq(interp, host),
+        opcode::ISZERO => bitwise::iszero(interp, host),
+        opcode::AND => bitwise::bitand(interp, host),
+        opcode::OR => bitwise::bitor(interp, host),
+        opcode::XOR => bitwise::bitxor(interp, host),
+        opcode::NOT => bitwise::not(interp, host),
+        opcode::BYTE => bitwise::byte(interp, host),
+        opcode::SHL => bitwise::shl::<S>(interp, host),
+        opcode::SHR => bitwise::shr::<S>(interp, host),
+        opcode::SAR => bitwise::sar::<S>(interp, host),
         opcode::SHA3 => system::sha3(interp, host),
-
         opcode::ADDRESS => system::address(interp, host),
         opcode::BALANCE => host::balance::<S>(interp, host),
         opcode::SELFBALANCE => host::selfbalance::<S>(interp, host),
