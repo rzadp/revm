@@ -1,3 +1,5 @@
+use ruint::aliases::B160;
+
 
 /// EVM context host.
 pub trait Host {
