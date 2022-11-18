@@ -197,7 +197,11 @@ pub struct BlockEnv {
     /// Address where we are going to send gas spend
     pub coinbase: B160,
     pub timestamp: U256,
+    /// Difficulty is removed and not used after Paris (aka TheMerge). Value is replaced with prevrandao.
     pub difficulty: U256,
+    /// Prevrandao is used after Paris (aka TheMerge) instead of the difficulty value.
+    /// NOTE: prevrandao can be found in block in place of mix_hash.
+    pub prevrandao: Option<B256>,
     /// basefee is added in EIP1559 London upgrade
     pub basefee: U256,
     pub gas_limit: U256,
@@ -253,6 +257,11 @@ pub struct CfgEnv {
     /// By default, it is set to `false`.
     #[cfg(feature = "optional_eip3607")]
     pub disable_eip3607: bool,
+    /// Disables all gas refunds. This is useful when using chains that have gas refunds disabled e.g. Avalanche.
+    /// Reasoning behind removing gas refunds can be found in EIP-3298.
+    /// By default, it is set to `false`.
+    #[cfg(feature = "optional_gas_refund")]
+    pub disable_gas_refund: bool,
 }
 
 #[derive(Clone, Default, Debug, Eq, PartialEq)]
@@ -278,6 +287,8 @@ impl Default for CfgEnv {
             disable_block_gas_limit: false,
             #[cfg(feature = "optional_eip3607")]
             disable_eip3607: false,
+            #[cfg(feature = "optional_gas_refund")]
+            disable_gas_refund: false,
         }
     }
 }
@@ -290,6 +301,7 @@ impl Default for BlockEnv {
             coinbase: B160::ZERO,
             timestamp: U256::from(1),
             difficulty: U256::ZERO,
+            prevrandao: Some(B256::ZERO),
             basefee: U256::ZERO,
         }
     }

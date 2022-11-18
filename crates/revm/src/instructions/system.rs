@@ -6,12 +6,12 @@ use std::cmp::min;
 
 pub fn sha3(interpreter: &mut Interpreter, _host: &mut dyn Host) {
     pop!(interpreter, from, len);
-    let len = as_usize_or_fail!(interpreter,len, Return::OutOfGas);
+    let len = as_usize_or_fail!(interpreter, len, Return::OutOfGas);
     gas_or_fail!(interpreter, gas::sha3_cost(len as u64));
     let hash = if len == 0 {
         KECCAK_EMPTY
     } else {
-        let from = as_usize_or_fail!(interpreter,from, Return::OutOfGas);
+        let from = as_usize_or_fail!(interpreter, from, Return::OutOfGas);
         memory_resize!(interpreter, from, len);
         keccak256(interpreter.memory.get_slice(from, len))
     };
@@ -44,12 +44,12 @@ pub fn codesize(interpreter: &mut Interpreter, _host: &mut dyn Host) {
 
 pub fn codecopy(interpreter: &mut Interpreter, _host: &mut dyn Host) {
     pop!(interpreter, memory_offset, code_offset, len);
-    let len = as_usize_or_fail!(interpreter,len, Return::OutOfGas);
+    let len = as_usize_or_fail!(interpreter, len, Return::OutOfGas);
     gas_or_fail!(interpreter, gas::verylowcopy_cost(len as u64));
     if len == 0 {
         return;
     }
-    let memory_offset = as_usize_or_fail!(interpreter,memory_offset, Return::OutOfGas);
+    let memory_offset = as_usize_or_fail!(interpreter, memory_offset, Return::OutOfGas);
     let code_offset = as_usize_saturated!(code_offset);
     memory_resize!(interpreter, memory_offset, len);
 
@@ -91,12 +91,12 @@ pub fn callvalue(interpreter: &mut Interpreter, _host: &mut dyn Host) {
 
 pub fn calldatacopy(interpreter: &mut Interpreter, _host: &mut dyn Host) {
     pop!(interpreter, memory_offset, data_offset, len);
-    let len = as_usize_or_fail!(interpreter,len, Return::OutOfGas);
+    let len = as_usize_or_fail!(interpreter, len, Return::OutOfGas);
     gas_or_fail!(interpreter, gas::verylowcopy_cost(len as u64));
     if len == 0 {
         return;
     }
-    let memory_offset = as_usize_or_fail!(interpreter,memory_offset, Return::OutOfGas);
+    let memory_offset = as_usize_or_fail!(interpreter, memory_offset, Return::OutOfGas);
     let data_offset = as_usize_saturated!(data_offset);
     memory_resize!(interpreter, memory_offset, len);
 
@@ -118,22 +118,24 @@ pub fn returndatasize<SPEC: Spec>(interpreter: &mut Interpreter, _host: &mut dyn
 
 pub fn returndatacopy<SPEC: Spec>(interpreter: &mut Interpreter, _host: &mut dyn Host) {
     // EIP-211: New opcodes: RETURNDATASIZE and RETURNDATACOPY
-    check!(interpreter,SPEC::enabled(BYZANTIUM));
+    check!(interpreter, SPEC::enabled(BYZANTIUM));
     pop!(interpreter, memory_offset, offset, len);
     let len = as_usize_or_fail!(interpreter,len, Return::OutOfGas);
     gas_or_fail!(interpreter, gas::verylowcopy_cost(len as u64));
-    let memory_offset = as_usize_or_fail!(interpreter,memory_offset, Return::OutOfGas);
     let data_offset = as_usize_saturated!(offset);
-    memory_resize!(interpreter, memory_offset, len);
     let (data_end, overflow) = data_offset.overflowing_add(len);
     if overflow || data_end > interpreter.return_data_buffer.len() {
         interpreter.instruction_result = Return::OutOfOffset;
         return;
     }
-    interpreter.memory.set(
-        memory_offset,
-        &interpreter.return_data_buffer[data_offset..data_end],
-    );
+    if len != 0 {
+        let memory_offset = as_usize_or_fail!(interpreter,memory_offset, Return::OutOfGas);
+        memory_resize!(interpreter, memory_offset, len);
+        interpreter.memory.set(
+            memory_offset,
+            &interpreter.return_data_buffer[data_offset..data_end],
+        );
+    }
 }
 
 pub fn gas(interpreter: &mut Interpreter, _host: &mut dyn Host) {

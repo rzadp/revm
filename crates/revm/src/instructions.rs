@@ -57,6 +57,7 @@ pub enum Return {
     OutOfOffset,
     FatalExternalError,
     GasMaxFeeGreaterThanPriorityFee,
+    PrevrandaoNotSet,
     GasPriceLessThenBasefee,
     CallerGasLimitMoreThenBlock,
     /// EIP-3607 Reject transactions from senders with deployed code
@@ -213,7 +214,7 @@ pub fn eval<H: Host, S: Spec>(opcode: u8, interp: &mut Interpreter, host: &mut H
         opcode::COINBASE => host_env::coinbase(interp, host),
         opcode::TIMESTAMP => host_env::timestamp(interp, host),
         opcode::NUMBER => host_env::number(interp, host),
-        opcode::DIFFICULTY => host_env::difficulty(interp, host),
+        opcode::DIFFICULTY => host_env::difficulty::<H, S>(interp, host),
         opcode::GASLIMIT => host_env::gaslimit(interp, host),
         opcode::SLOAD => host::sload::<S>(interp, host),
         opcode::SSTORE => host::sstore::<S>(interp, host),

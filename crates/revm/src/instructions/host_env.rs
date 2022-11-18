@@ -27,9 +27,13 @@ pub fn number(interpreter: &mut Interpreter, host: &mut dyn Host) {
     push!(interpreter, host.env().block.number);
 }
 
-pub fn difficulty(interpreter: &mut Interpreter, host: &mut dyn Host) {
+pub fn difficulty<H: Host, SPEC: Spec>(interpreter: &mut Interpreter, host: &mut H) {
     // gas!(interp, gas::BASE);
-    push!(interpreter, host.env().block.difficulty);
+    if SPEC::enabled(MERGE) {
+        push_b256!(interpreter, host.env().block.prevrandao.unwrap());
+    } else {
+        push!(interpreter, host.env().block.difficulty);
+    }
 }
 
 pub fn gaslimit(interpreter: &mut Interpreter, host: &mut dyn Host) {
